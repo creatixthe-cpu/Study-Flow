@@ -1,0 +1,6 @@
+{
+  "name": "StudyFlow",
+  "description": "Premium Gen-Z study tracking app: plan studies, track live sessions, interactive analytics, and AI study coach.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
