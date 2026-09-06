@@ -7,12 +7,16 @@ import {
   Star, 
   Plus, 
   Minus, 
-  BookOpen
+  BookOpen,
+  Sun,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { Subject, Topic, StudySession } from '../../types';
 import { GlassCard } from '../common/GlassCard';
 import { Modal } from '../common/Modal';
 import { soundService } from '../../services/sound';
+import { wakeLockService } from '../../services/wakeLock';
 
 interface StudyTimerScreenProps {
   subjects: Subject[];
@@ -43,6 +47,18 @@ export const StudyTimerScreen: React.FC<StudyTimerScreenProps> = ({
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Keep Screen Awake (Screen Wake Lock API)
+  const [keepScreenOn, setKeepScreenOn] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('studyflow_keep_screen_on');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+  const [isWakeLockActive, setIsWakeLockActive] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
+
   // Post session modal
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
   const [rating, setRating] = useState(5);
@@ -52,6 +68,34 @@ export const StudyTimerScreen: React.FC<StudyTimerScreenProps> = ({
   const [actualDuration, setActualDuration] = useState(25);
 
   const timerRef = useRef<number | null>(null);
+
+  // Sync wakeLock state listener
+  useEffect(() => {
+    wakeLockService.setStatusListener((active) => {
+      setIsWakeLockActive(active);
+    });
+  }, []);
+
+  // Control Wake Lock strictly based on running state & user preference to save battery
+  useEffect(() => {
+    if (isRunning && !isPaused && keepScreenOn) {
+      wakeLockService.acquire();
+    } else {
+      wakeLockService.release();
+    }
+
+    return () => {
+      wakeLockService.release();
+    };
+  }, [isRunning, isPaused, keepScreenOn]);
+
+  const handleToggleKeepScreenOn = () => {
+    setKeepScreenOn(prev => {
+      const next = !prev;
+      localStorage.setItem('studyflow_keep_screen_on', JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Sync when activeSubject or activeTopic change
   useEffect(() => {
@@ -276,6 +320,16 @@ export const StudyTimerScreen: React.FC<StudyTimerScreenProps> = ({
 
       {/* Circular Progress Meter Card */}
       <GlassCard className="flex flex-col items-center justify-center py-12 relative overflow-hidden">
+        {/* Top-right Zen Mode expand trigger */}
+        <button
+          onClick={() => setIsZenMode(true)}
+          className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all z-20"
+          title="Fullscreen Focus Mode"
+        >
+          <Maximize2 size={13} />
+          <span>Zen Mode</span>
+        </button>
+
         {/* Glow ambient background */}
         <div className="absolute w-72 h-72 rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
 
@@ -368,6 +422,143 @@ export const StudyTimerScreen: React.FC<StudyTimerScreenProps> = ({
           )}
         </div>
       </GlassCard>
+
+      {/* Screen-Lock / Keep Screen Awake Card */}
+      <GlassCard className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
+            isWakeLockActive
+              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-md shadow-amber-500/20'
+              : keepScreenOn
+              ? 'bg-purple-600/20 border-purple-500/30 text-purple-300'
+              : 'bg-white/5 border-white/10 text-slate-400'
+          }`}>
+            <Sun size={20} className={isWakeLockActive ? 'animate-spin duration-1000' : ''} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-bold text-white">Keep Screen Awake</h3>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border ${
+                isWakeLockActive
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 animate-pulse'
+                  : keepScreenOn
+                  ? 'bg-purple-500/20 border-purple-500/30 text-purple-300'
+                  : 'bg-white/5 border-white/10 text-slate-500'
+              }`}>
+                {isWakeLockActive
+                  ? '● Active (Screen Won\'t Sleep)'
+                  : keepScreenOn
+                  ? 'Standby (Active when timer runs)'
+                  : 'Disabled'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Prevents your device display from turning off while studying. Automatically releases on pause to preserve battery.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleToggleKeepScreenOn}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all self-start sm:self-auto border ${
+            keepScreenOn
+              ? 'bg-[#7C3AED] hover:bg-purple-600 text-white border-purple-500/50 shadow-md'
+              : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/10'
+          }`}
+        >
+          {keepScreenOn ? 'Enabled' : 'Disabled'}
+        </button>
+      </GlassCard>
+
+      {/* Zen Fullscreen Focus Mode Overlay */}
+      {isZenMode && (
+        <div className="fixed inset-0 z-50 bg-[#050505] flex flex-col justify-between p-6 sm:p-12 backdrop-blur-3xl animate-in fade-in duration-300">
+          {/* Top Bar with Exit and Screen Status */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+              <Sun size={14} className={isWakeLockActive ? 'text-amber-400 animate-pulse' : 'text-slate-400'} />
+              <span>{isWakeLockActive ? 'Screen Awake: Active' : 'Zen Focus'}</span>
+            </div>
+
+            <button
+              onClick={() => setIsZenMode(false)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs sm:text-sm font-semibold transition-all"
+            >
+              <Minimize2 size={15} />
+              <span>Exit Zen</span>
+            </button>
+          </div>
+
+          {/* Huge Center Timer Display */}
+          <div className="flex flex-col items-center justify-center text-center space-y-6">
+            <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-sm font-bold">
+              <BookOpen size={16} />
+              <span>{selectedSubject} • {selectedTopic}</span>
+            </div>
+
+            <div className="text-7xl sm:text-9xl font-black font-mono tracking-tighter text-white drop-shadow-2xl">
+              {timeFormatted}
+            </div>
+
+            <div className="w-64 sm:w-96 h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-1000 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Zen Controls */}
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={handleReset}
+              className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all"
+              title="Reset"
+            >
+              <RotateCcw size={20} />
+            </button>
+
+            {!isRunning ? (
+              <button
+                onClick={handleStart}
+                className="flex items-center gap-3 px-10 py-5 rounded-3xl bg-[#7C3AED] hover:bg-purple-600 text-white font-bold text-lg shadow-2xl shadow-purple-600/50 transition-all hover:scale-105"
+              >
+                <Play size={22} className="fill-white" />
+                <span>Start Focus</span>
+              </button>
+            ) : isPaused ? (
+              <button
+                onClick={handleResume}
+                className="flex items-center gap-3 px-10 py-5 rounded-3xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg shadow-2xl shadow-emerald-600/50 transition-all hover:scale-105"
+              >
+                <Play size={22} className="fill-white" />
+                <span>Resume</span>
+              </button>
+            ) : (
+              <button
+                onClick={handlePause}
+                className="flex items-center gap-3 px-10 py-5 rounded-3xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-lg shadow-2xl shadow-orange-600/50 transition-all hover:scale-105"
+              >
+                <Pause size={22} className="fill-white" />
+                <span>Pause</span>
+              </button>
+            )}
+
+            {isRunning && (
+              <button
+                onClick={() => {
+                  handleFinishEarly();
+                  setIsZenMode(false);
+                }}
+                className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-emerald-400 hover:text-emerald-300 transition-all"
+                title="Finish Early"
+              >
+                <CheckCircle size={20} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Post Session Evaluation Modal */}
       <Modal

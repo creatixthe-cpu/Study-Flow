@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ScreenId, Task, Subject, Topic, StudySession, UserProfile } from './types';
+import { ScreenId, Task, Subject, Topic, StudySession, UserProfile, AuthUser } from './types';
 import { storageService } from './services/storage';
+import { authService } from './services/firebase';
 import { Sidebar } from './components/navigation/Sidebar';
 import { BottomNav } from './components/navigation/BottomNav';
+import { SplashScreen } from './components/common/SplashScreen';
+import { AuthModal } from './components/auth/AuthModal';
 
 // Screens
 import { DashboardScreen } from './components/screens/DashboardScreen';
@@ -14,9 +17,25 @@ import { SettingsScreen } from './components/screens/SettingsScreen';
 import { LandingScreen } from './components/screens/LandingScreen';
 
 export const App: React.FC = () => {
+  // Splash Screen State
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authService.getCurrentUser());
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   // Initialize storage once
   useEffect(() => {
     storageService.init();
+
+    // Listen to Firebase auth changes
+    const unsubscribeAuth = authService.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+
+    return () => {
+      unsubscribeAuth();
+    };
   }, []);
 
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('dashboard');
@@ -136,11 +155,28 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col md:flex-row antialiased selection:bg-purple-600/30 selection:text-purple-200">
+      {/* Starting Splash Screen with "Made by Sunny" */}
+      {showSplash && (
+        <SplashScreen onComplete={() => setShowSplash(false)} />
+      )}
+
+      {/* User Login & Profile Modal (Google + Phone OTP) */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        currentUser={currentUser}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+        }}
+      />
+
       {/* Desktop Navigation Sidebar */}
       <Sidebar
         currentScreen={currentScreen}
         onNavigate={setCurrentScreen}
         streakDays={profile.streakDays}
+        currentUser={currentUser}
+        onOpenAuth={() => setShowAuthModal(true)}
       />
 
       {/* Main Content Viewport */}
@@ -214,6 +250,8 @@ export const App: React.FC = () => {
             onResetDemoData={handleResetDemoData}
             onClearAllData={handleClearAllData}
             onNavigate={setCurrentScreen}
+            currentUser={currentUser}
+            onOpenAuth={() => setShowAuthModal(true)}
           />
         )}
       </main>

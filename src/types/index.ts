@@ -56,4 +56,13 @@ export interface WeeklyStudyDay {
   minutes: number;
 }
 
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  phoneNumber: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  providerId: string;
+}
+
 export type ScreenId = 'dashboard' | 'planner' | 'study' | 'analytics' | 'topics' | 'settings' | 'landing';

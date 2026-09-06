@@ -7,20 +7,26 @@ import {
   BookOpen, 
   Settings, 
   Flame,
-  Play
+  Play,
+  User,
+  Sparkles
 } from 'lucide-react';
-import { ScreenId } from '../../types';
+import { ScreenId, AuthUser } from '../../types';
 
 interface SidebarProps {
   currentScreen: ScreenId;
   onNavigate: (screen: ScreenId) => void;
   streakDays: number;
+  currentUser?: AuthUser | null;
+  onOpenAuth?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentScreen,
   onNavigate,
   streakDays,
+  currentUser,
+  onOpenAuth,
 }) => {
   const navItems = [
     { id: 'dashboard' as ScreenId, label: 'Dashboard', icon: LayoutDashboard },
@@ -51,6 +57,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <p className="text-[11px] text-slate-400 font-medium">Gen-Z Study Tracker</p>
           </div>
+        </div>
+
+        {/* User Account / Auth Widget */}
+        <div 
+          onClick={onOpenAuth}
+          className="flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 cursor-pointer transition-all group"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold text-xs shrink-0 overflow-hidden">
+              {currentUser?.photoURL ? (
+                <img src={currentUser.photoURL} alt={currentUser.displayName || 'User'} className="w-full h-full object-cover" />
+              ) : currentUser ? (
+                <span>{(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}</span>
+              ) : (
+                <User size={15} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-white block truncate">
+                {currentUser?.displayName || (currentUser?.phoneNumber ? `Student (${currentUser.phoneNumber.slice(-4)})` : 'Sign In')}
+              </span>
+              <span className="text-[10px] text-slate-400 block truncate">
+                {currentUser ? (currentUser.email || currentUser.phoneNumber || 'Authenticated') : 'Google / Phone OTP'}
+              </span>
+            </div>
+          </div>
+          <span className="text-[10px] font-semibold text-purple-400 group-hover:text-purple-300 shrink-0">
+            {currentUser ? 'Edit' : 'Login →'}
+          </span>
         </div>
 
         {/* Streak Counter Banner */}
@@ -87,8 +122,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Quick Launch CTA */}
-      <div className="mt-auto pt-4 border-t border-white/10">
+      {/* Quick Launch CTA & Creator Badge */}
+      <div className="mt-auto pt-4 border-t border-white/10 space-y-3">
         <button
           onClick={() => onNavigate('study')}
           className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-white font-semibold text-sm transition-all duration-200 shadow-md group"
@@ -96,6 +131,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Play size={16} className="fill-purple-400 text-purple-400 group-hover:scale-110 transition-transform" />
           <span>Quick Focus Timer</span>
         </button>
+
+        {/* Clean subtle copyright/creator branding */}
+        <div className="flex items-center justify-center gap-1.5 py-1 text-[11px] text-slate-400">
+          <Sparkles size={11} className="text-purple-400" />
+          <span className="font-semibold tracking-wide text-slate-300">Made by Sunny</span>
+        </div>
       </div>
     </aside>
   );

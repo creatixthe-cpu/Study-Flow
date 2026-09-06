@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { 
   Target, 
   Volume2, 
-  ExternalLink
+  ExternalLink,
+  User,
+  Heart
 } from 'lucide-react';
-import { UserProfile, ScreenId } from '../../types';
+import { UserProfile, ScreenId, AuthUser } from '../../types';
 import { GlassCard } from '../common/GlassCard';
 import { Modal } from '../common/Modal';
 
@@ -14,6 +16,8 @@ interface SettingsScreenProps {
   onResetDemoData: () => void;
   onClearAllData: () => void;
   onNavigate: (screen: ScreenId) => void;
+  currentUser?: AuthUser | null;
+  onOpenAuth?: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
@@ -22,6 +26,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onResetDemoData,
   onClearAllData,
   onNavigate,
+  currentUser,
+  onOpenAuth,
 }) => {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -95,6 +101,52 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         >
           Edit Profile
         </button>
+      </GlassCard>
+
+      {/* Account & Security Card */}
+      <GlassCard className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white">Account & Authentication</h3>
+            <p className="text-xs text-slate-400">Google Sign-in & Phone OTP verification</p>
+          </div>
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+            currentUser
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+              : 'bg-white/5 border-white/10 text-slate-400'
+          }`}>
+            {currentUser ? 'Authenticated' : 'Guest Student'}
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 text-purple-300 flex items-center justify-center font-bold text-sm overflow-hidden">
+              {currentUser?.photoURL ? (
+                <img src={currentUser.photoURL} alt={currentUser.displayName || 'Profile'} className="w-full h-full object-cover" />
+              ) : currentUser ? (
+                <span>{(currentUser.displayName || 'U')[0].toUpperCase()}</span>
+              ) : (
+                <User size={18} />
+              )}
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-white block">
+                {currentUser?.displayName || 'Not signed in'}
+              </span>
+              <span className="text-xs text-slate-400 block">
+                {currentUser ? (currentUser.email || currentUser.phoneNumber || 'User ID: ' + currentUser.uid.slice(0, 8)) : 'Sign in with Google or Phone OTP to save sessions'}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={onOpenAuth}
+            className="px-4 py-2 rounded-xl bg-[#7C3AED] hover:bg-purple-600 text-white text-xs sm:text-sm font-semibold transition-all shadow-md self-start sm:self-auto"
+          >
+            {currentUser ? 'Manage Account' : 'Sign In / Register'}
+          </button>
+        </div>
       </GlassCard>
 
       {/* Study Session Preferences */}
@@ -216,9 +268,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
       </GlassCard>
 
-      {/* About Box */}
-      <div className="text-center py-4 space-y-1">
-        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 font-semibold">
+      {/* About & Creator Footer */}
+      <div className="text-center py-6 space-y-3">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-slate-300 shadow-sm backdrop-blur-md">
+          <Heart size={14} className="text-rose-500 fill-rose-500 animate-pulse" />
+          <span className="text-xs sm:text-sm font-semibold tracking-wide text-white">
+            Made with ❤️ by Sunny
+          </span>
+        </div>
+        <div className="flex items-center justify-center gap-2 text-xs text-slate-500 font-medium">
           <span>StudyFlow Web App</span>
           <span>•</span>
           <span>v1.0.0 Frosted Glass Edition</span>

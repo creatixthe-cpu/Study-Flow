@@ -205,8 +205,14 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onNavigate }) => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-8 text-center text-xs text-slate-500">
-        StudyFlow • Frosted Glass Web Edition • Powered by React & Vite
+      <footer className="border-t border-white/10 py-8 text-center text-xs text-slate-400 space-y-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">
+          <Sparkles size={12} className="text-purple-400" />
+          <span className="font-semibold text-xs text-white">Made by Sunny</span>
+        </div>
+        <p className="text-slate-500 text-[11px]">
+          StudyFlow • Frosted Glass Web Edition • Powered by React & Vite
+        </p>
       </footer>
     </div>
   );
